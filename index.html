@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>After School Club</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+    <div id="app">
+
+        <!-- Header with the shopping cart button -->
+        <header>
+            <h1>{{ siteName }}</h1>
+            <!-- Enabled only when the cart has items (or when already on the cart page, so the user can go back) -->
+            <button v-on:click="toggleCart" v-bind:disabled="numberOfItems === 0 && !displayCart">
+                {{ displayCart ? 'Back to Lessons' : 'Cart (' + numberOfItems + ')' }}
+            </button>
+        </header>
+
+        <!-- LESSONS PAGE -->
+        <main v-if="!displayCart">
+            <div id="lessons">
+                <div v-for="lesson in lessons" v-bind:key="lesson.id">
+                    <img v-bind:src="lesson.image" v-bind:alt="lesson.alt">
+                    <h2>{{ lesson.subject }}</h2>
+                    <p>Location: {{ lesson.location }}</p>
+                    <p>Price: &pound;{{ lesson.price }}</p>
+                    <p>Spaces left: {{ lesson.availability }}</p>
+                    <button v-on:click="addToCart(lesson)" v-bind:disabled="!canAddToCart(lesson)">Add to Cart</button>
+                </div>
+            </div>
+        </main>
+
+        <!-- CART + CHECKOUT PAGE -->
+        <main v-else>
+            <h2>Your Cart</h2>
+            <p v-if="numberOfItems === 0">Your cart is empty.</p>
+            <ul>
+                <li v-for="lesson in lessonsInCart" v-bind:key="lesson.id">
+                    {{ lesson.subject }} ({{ lesson.location }}) x {{ cartCount(lesson.id) }}
+                    = &pound;{{ lesson.price * cartCount(lesson.id) }}
+                    <button v-on:click="removeFromCart(lesson)">Remove</button>
+                </li>
+            </ul>
+            <p v-if="numberOfItems > 0">Total: &pound;{{ cartTotal }}</p>
+
+            <h2>Checkout</h2>
+            <p>
+                <label>Name <input type="text" v-model.trim="order.name"></label>
+                <span v-if="order.name && !nameIsValid">Letters only</span>
+            </p>
+            <p>
+                <label>Phone <input type="text" v-model.trim="order.phone"></label>
+                <span v-if="order.phone && !phoneIsValid">Numbers only</span>
+            </p>
+
+            <!-- Always visible, only enabled when name + phone are valid -->
+            <button v-on:click="submitCheckout" v-bind:disabled="!canCheckout">Checkout</button>
+
+            <p v-if="orderConfirmed">Thank you {{ confirmedName }}, your order has been submitted!</p>
+        </main>
+    </div>
+
+    <script type="module">
+        const { createApp } = Vue
+
+        const myApp = createApp({
+            data() {
+                return {
+                    siteName: 'After School Club',
+                    lessons: [
+                        { id: 1001, subject: 'Maths',            location: 'Hendon',        price: 100, availability: 5, image: 'images/maths.svg',     alt: 'Maths symbols' },
+                        { id: 1002, subject: 'English',          location: 'Colindale',     price: 80,  availability: 5, image: 'images/english.svg',   alt: 'Letters A and a' },
+                        { id: 1003, subject: 'Science',          location: 'Brent Cross',   price: 90,  availability: 5, image: 'images/science.svg',   alt: 'Science flask' },
+                        { id: 1004, subject: 'Computer Science', location: 'Golders Green', price: 120, availability: 5, image: 'images/computing.svg', alt: 'Code brackets' },
+                        { id: 1005, subject: 'Art',              location: 'Finchley',      price: 70,  availability: 5, image: 'images/art.svg',       alt: 'Paint palette' },
+                        { id: 1006, subject: 'Music',            location: 'Mill Hill',     price: 85,  availability: 5, image: 'images/music.svg',     alt: 'Music note' },
+                        { id: 1007, subject: 'Drama',            location: 'Edgware',       price: 75,  availability: 5, image: 'images/drama.svg',     alt: 'Theatre stage' },
+                        { id: 1008, subject: 'Football',         location: 'Barnet',        price: 60,  availability: 5, image: 'images/football.svg',  alt: 'Football' },
+                        { id: 1009, subject: 'Swimming',         location: 'Wembley',       price: 95,  availability: 5, image: 'images/swimming.svg',  alt: 'Water waves' },
+                        { id: 1010, subject: 'Chess',            location: 'Kilburn',       price: 65,  availability: 5, image: 'images/chess.svg',     alt: 'Chess board' }
+                    ],
+                    cart: [],                       // stores lesson IDs, one entry per space
+                    displayCart: false,             // false = lessons page, true = cart page
+                    order: { name: '', phone: '' },
+                    orderConfirmed: false,
+                    confirmedName: ''
+                }
+            },
+            computed: {
+                numberOfItems() {
+                    return this.cart.length
+                },
+                // lessons that have at least one space in the cart
+                lessonsInCart() {
+                    return this.lessons.filter(lesson => this.cartCount(lesson.id) > 0)
+                },
+                cartTotal() {
+                    return this.lessonsInCart.reduce((total, lesson) => total + lesson.price * this.cartCount(lesson.id), 0)
+                },
+                // letters (and spaces between names) only
+                nameIsValid() {
+                    return /^[A-Za-z]+( [A-Za-z]+)*$/.test(this.order.name)
+                },
+                // digits only
+                phoneIsValid() {
+                    return /^[0-9]+$/.test(this.order.phone)
+                },
+                canCheckout() {
+                    return this.nameIsValid && this.phoneIsValid && this.numberOfItems > 0
+                }
+            },
+            methods: {
+                addToCart(lesson) {
+                    if (this.canAddToCart(lesson)) {
+                        this.cart.push(lesson.id)
+                        lesson.availability--
+                        this.orderConfirmed = false
+                    }
+                },
+                canAddToCart(lesson) {
+                    return lesson.availability > 0
+                },
+                // how many copies of this lesson ID are in the cart
+                cartCount(id) {
+                    return this.cart.filter(itemId => itemId === id).length
+                },
+                removeFromCart(lesson) {
+                    const index = this.cart.indexOf(lesson.id)
+                    if (index !== -1) {
+                        this.cart.splice(index, 1)
+                        lesson.availability++
+                    }
+                },
+                toggleCart() {
+                    this.displayCart = !this.displayCart
+                },
+                submitCheckout() {
+                    this.confirmedName = this.order.name
+                    this.orderConfirmed = true
+                    this.cart = []
+                    this.order = { name: '', phone: '' }
+                }
+            }
+        })
+
+        myApp.mount('#app')
+    </script>
+</body>
+</html>
