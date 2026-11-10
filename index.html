@@ -21,8 +21,25 @@
 
         <!-- LESSONS PAGE -->
         <main v-if="!displayCart">
+            <p>
+                <label>Sort by
+                    <select v-model="sortType">
+                        <option value="subject">Subject</option>
+                        <option value="location">Location</option>
+                        <option value="price">Price</option>
+                        <option value="availability">Spaces</option>
+                    </select>
+                </label>
+                <label>Order
+                    <select v-model="ascending">
+                        <option v-bind:value="true">Ascending</option>
+                        <option v-bind:value="false">Descending</option>
+                    </select>
+                </label>
+            </p>
+
             <div id="lessons">
-                <div v-for="lesson in lessons" v-bind:key="lesson.id">
+                <div v-for="lesson in sortedLessons" v-bind:key="lesson.id">
                     <img v-bind:src="lesson.image" v-bind:alt="lesson.alt">
                     <h2>{{ lesson.subject }}</h2>
                     <p>Location: {{ lesson.location }}</p>
@@ -73,12 +90,24 @@
                     lessons: [],                    // filled from the back-end by fetchData()
                     cart: [],                       // stores lesson IDs, one entry per space
                     displayCart: false,             // false = lessons page, true = cart page
+                    sortType: 'subject',            // subject, location, price or availability
+                    ascending: true,                // true = A-Z / low-high, false = Z-A / high-low
                     order: { name: '', phone: '' },
                     orderConfirmed: false,
                     confirmedName: ''
                 }
             },
             computed: {
+                // copy of the lessons array sorted by sortType, in ascending or descending order
+                sortedLessons() {
+                    const type = this.sortType
+                    const direction = this.ascending ? 1 : -1
+                    return this.lessons.slice().sort(function(a, b) {
+                        if (a[type] > b[type]) return 1 * direction
+                        if (a[type] < b[type]) return -1 * direction
+                        return 0
+                    })
+                },
                 numberOfItems() {
                     return this.cart.length
                 },
