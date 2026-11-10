@@ -70,18 +70,7 @@
             data() {
                 return {
                     siteName: 'After School Club',
-                    lessons: [
-                        { id: 1001, subject: 'Maths',            location: 'Hendon',        price: 100, availability: 5, image: 'images/maths.svg',     alt: 'Maths symbols' },
-                        { id: 1002, subject: 'English',          location: 'Colindale',     price: 80,  availability: 5, image: 'images/english.svg',   alt: 'Letters A and a' },
-                        { id: 1003, subject: 'Science',          location: 'Brent Cross',   price: 90,  availability: 5, image: 'images/science.svg',   alt: 'Science flask' },
-                        { id: 1004, subject: 'Computer Science', location: 'Golders Green', price: 120, availability: 5, image: 'images/computing.svg', alt: 'Code brackets' },
-                        { id: 1005, subject: 'Art',              location: 'Finchley',      price: 70,  availability: 5, image: 'images/art.svg',       alt: 'Paint palette' },
-                        { id: 1006, subject: 'Music',            location: 'Mill Hill',     price: 85,  availability: 5, image: 'images/music.svg',     alt: 'Music note' },
-                        { id: 1007, subject: 'Drama',            location: 'Edgware',       price: 75,  availability: 5, image: 'images/drama.svg',     alt: 'Theatre stage' },
-                        { id: 1008, subject: 'Football',         location: 'Barnet',        price: 60,  availability: 5, image: 'images/football.svg',  alt: 'Football' },
-                        { id: 1009, subject: 'Swimming',         location: 'Wembley',       price: 95,  availability: 5, image: 'images/swimming.svg',  alt: 'Water waves' },
-                        { id: 1010, subject: 'Chess',            location: 'Kilburn',       price: 65,  availability: 5, image: 'images/chess.svg',     alt: 'Chess board' }
-                    ],
+                    lessons: [],                    // filled from the back-end by fetchData()
                     cart: [],                       // stores lesson IDs, one entry per space
                     displayCart: false,             // false = lessons page, true = cart page
                     order: { name: '', phone: '' },
@@ -112,7 +101,15 @@
                     return this.nameIsValid && this.phoneIsValid && this.numberOfItems > 0
                 }
             },
+            created() {
+                this.fetchData()
+            },
             methods: {
+                async fetchData() {
+                    const url = 'http://localhost:3000/'
+                    let response = await fetch(url)
+                    this.lessons = await response.json()
+                },
                 addToCart(lesson) {
                     if (this.canAddToCart(lesson)) {
                         this.cart.push(lesson.id)
