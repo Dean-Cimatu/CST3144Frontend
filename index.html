@@ -40,7 +40,7 @@
 
             <div id="lessons">
                 <div v-for="lesson in sortedLessons" v-bind:key="lesson.id">
-                    <img v-bind:src="lesson.image" v-bind:alt="lesson.alt">
+                    <img v-bind:src="imageUrl(lesson)" v-bind:alt="lesson.alt">
                     <h2>{{ lesson.subject }}</h2>
                     <p>Location: {{ lesson.location }}</p>
                     <p>Price: &pound;{{ lesson.price }}</p>
@@ -82,6 +82,9 @@
 
     <script type="module">
         const { createApp } = Vue
+
+        // address of the back-end server (changes to the render.com address in Week 8)
+        const BASE_URL = 'http://localhost:3000'
 
         const myApp = createApp({
             data() {
@@ -134,10 +137,15 @@
                 this.fetchData()
             },
             methods: {
+                // GET all lessons from the server
                 async fetchData() {
-                    const url = 'http://localhost:3000/'
+                    const url = BASE_URL + '/lessons'
                     let response = await fetch(url)
                     this.lessons = await response.json()
+                },
+                // images are served by the back-end's static file middleware
+                imageUrl(lesson) {
+                    return BASE_URL + '/' + lesson.image
                 },
                 addToCart(lesson) {
                     if (this.canAddToCart(lesson)) {
@@ -163,11 +171,29 @@
                 toggleCart() {
                     this.displayCart = !this.displayCart
                 },
-                submitCheckout() {
-                    this.confirmedName = this.order.name
-                    this.orderConfirmed = true
-                    this.cart = []
-                    this.order = { name: '', phone: '' }
+                // POST the order to the server, then show the confirmation
+                async submitCheckout() {
+                    const orderData = {
+                        name: this.order.name,
+                        phone: this.order.phone,
+                        lessons: this.lessonsInCart.map(lesson => ({
+                            lessonID: lesson.id,
+                            spaces: this.cartCount(lesson.id)
+                        }))
+                    }
+                    const options = {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(orderData)
+                    }
+                    let response = await fetch(BASE_URL + '/orders', options)
+
+                    if (response.ok) {
+                        this.confirmedName = this.order.name
+                        this.orderConfirmed = true
+                        this.cart = []
+                        this.order = { name: '', phone: '' }
+                    }
                 }
             }
         })
